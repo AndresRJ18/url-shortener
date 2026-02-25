@@ -18,7 +18,7 @@
         .container {
             text-align: center;
             padding: 2rem;
-            max-width: 500px;
+            max-width: 600px;
             width: 100%;
         }
         h1 { font-size: 2rem; margin-bottom: 0.5rem; }
@@ -47,30 +47,117 @@
             border-radius: 8px;
             font-size: 1rem;
             cursor: pointer;
+            transition: background 0.2s;
         }
         button:hover { background: #2563eb; }
-        .result {
+
+        .comparison {
             display: none;
             background: #1e293b;
             border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+        .comparison.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .url-box {
+            background: #0f172a;
+            border: 1px solid #334155;
             border-radius: 8px;
             padding: 1rem;
-            margin-top: 1rem;
-        }
-        .result a {
-            color: #3b82f6;
-            text-decoration: none;
-            font-size: 1.1rem;
+            margin-bottom: 1rem;
             word-break: break-all;
         }
-        .result a:hover { text-decoration: underline; }
+        .url-box:last-child { margin-bottom: 0; }
+
+        .url-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .label-original { color: #f87171; }
+        .label-short { color: #34d399; }
+
+        .url-text-original {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .url-text-short {
+            color: #34d399;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .url-text-short a {
+            color: #34d399;
+            text-decoration: none;
+        }
+        .url-text-short a:hover { text-decoration: underline; }
+
+        .arrow {
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 0.75rem 0;
+            color: #3b82f6;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+        .stat-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
         .copy-btn {
-            margin-top: 0.5rem;
-            padding: 0.4rem 1rem;
+            flex: 1;
+            padding: 0.6rem 1rem;
             font-size: 0.85rem;
             background: #334155;
         }
         .copy-btn:hover { background: #475569; }
+        .new-btn {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+            background: transparent;
+            border: 1px solid #334155;
+            color: #94a3b8;
+        }
+        .new-btn:hover { background: #1e293b; }
+
         .error { color: #f87171; margin-top: 1rem; }
     </style>
 </head>
@@ -79,27 +166,62 @@
         <h1>URL Shortener</h1>
         <p class="sub">Pega tu URL larga y obtén un enlace corto</p>
         <div class="input-group">
-            <input type="url" id="urlInput" placeholder="https://ejemplo.com/url-muy-larga">
-            <button onclick="shorten()">Acortar</button>
+            <input type="url" id="urlInput" placeholder="https://ejemplo.com/url-muy-larga-que-quieres-acortar">
+            <button onclick="shorten()" id="shortenBtn">Acortar</button>
         </div>
-        <div class="result" id="result">
-            <p>Tu URL corta:</p>
-            <a id="shortUrl" href="#" target="_blank"></a>
-            <br>
-            <button class="copy-btn" onclick="copyUrl()">Copiar</button>
+
+        <div class="comparison" id="comparison">
+            <div class="url-box">
+                <div class="url-label label-original">🔗 URL Original</div>
+                <div class="url-text-original" id="originalUrl"></div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="url-box">
+                <div class="url-label label-short">✂️ URL Corta</div>
+                <div class="url-text-short">
+                    <a id="shortUrl" href="#" target="_blank"></a>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="originalLength">0</div>
+                    <div class="stat-label">Caracteres original</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="shortLength">0</div>
+                    <div class="stat-label">Caracteres corta</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="savedPercent">0%</div>
+                    <div class="stat-label">Reducción</div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="copy-btn" onclick="copyUrl()">Copiar URL corta</button>
+                <button class="new-btn" onclick="reset()">Nueva URL</button>
+            </div>
         </div>
+
         <p class="error" id="error"></p>
     </div>
 
     <script>
         async function shorten() {
-            const url = document.getElementById('urlInput').value;
+            const url = document.getElementById('urlInput').value.trim();
             const error = document.getElementById('error');
-            const result = document.getElementById('result');
+            const comparison = document.getElementById('comparison');
             error.textContent = '';
-            result.style.display = 'none';
+            comparison.classList.remove('show');
 
             if (!url) { error.textContent = 'Ingresa una URL'; return; }
+
+            const btn = document.getElementById('shortenBtn');
+            btn.textContent = '...';
+            btn.disabled = true;
 
             try {
                 const res = await fetch('/shorten', {
@@ -108,20 +230,38 @@
                     body: JSON.stringify({ url })
                 });
                 const data = await res.json();
+
+                document.getElementById('originalUrl').textContent = url;
                 const link = document.getElementById('shortUrl');
                 link.href = data.short_url;
                 link.textContent = data.short_url;
-                result.style.display = 'block';
+
+                document.getElementById('originalLength').textContent = url.length;
+                document.getElementById('shortLength').textContent = data.short_url.length;
+                const saved = Math.round((1 - data.short_url.length / url.length) * 100);
+                document.getElementById('savedPercent').textContent = (saved > 0 ? saved : 0) + '%';
+
+                comparison.classList.add('show');
             } catch (e) {
                 error.textContent = 'Error al acortar la URL';
+            } finally {
+                btn.textContent = 'Acortar';
+                btn.disabled = false;
             }
         }
 
         function copyUrl() {
             const url = document.getElementById('shortUrl').textContent;
             navigator.clipboard.writeText(url);
-            document.querySelector('.copy-btn').textContent = '¡Copiado!';
-            setTimeout(() => document.querySelector('.copy-btn').textContent = 'Copiar', 2000);
+            const btn = document.querySelector('.copy-btn');
+            btn.textContent = '¡Copiado!';
+            setTimeout(() => btn.textContent = 'Copiar URL corta', 2000);
+        }
+
+        function reset() {
+            document.getElementById('urlInput').value = '';
+            document.getElementById('comparison').classList.remove('show');
+            document.getElementById('urlInput').focus();
         }
 
         document.getElementById('urlInput').addEventListener('keypress', e => {
