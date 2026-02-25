@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from pydantic import BaseModel
-import string, random, os
+import string, random, os, pathlib
 
 app = FastAPI()
+
+static_dir = pathlib.Path(__file__).parent / "static"
 
 try:
     import redis
@@ -28,6 +30,10 @@ def generate_code(length: int = 6) -> str:
     chars = string.ascii_letters + string.digits
     return ''.join(random.choices(chars, k=length))
 
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return (static_dir / "index.html").read_text()
+
 @app.get("/health")
 def health():
     return {"status": "ok", "store": store_type}
@@ -39,7 +45,6 @@ def shorten_url(request: URLRequest, req: Request):
         r.set(code, request.url)
     else:
         url_store[code] = request.url
-    # Usa el host real de la request en vez de hardcodear
     base_url = f"{req.url.scheme}://{req.headers.get('host', 'localhost')}"
     return {"short_url": f"{base_url}/{code}"}
 
