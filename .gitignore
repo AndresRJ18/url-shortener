@@ -1,0 +1,7 @@
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+__pycache__
+*.pyc
+awscliv2.zip
+aws/
