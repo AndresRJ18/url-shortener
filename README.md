@@ -1,44 +1,82 @@
-# URL Shortener
+# 🔗 URL Shortener
 
-Acortador de URLs desplegado en AWS ECS Fargate con CI/CD automatizado.
+Acortador de URLs full-stack desplegado en AWS ECS Fargate con CI/CD automatizado.
+
+## Demo
+
+![Demo](demo.gif)
 
 ## Tech Stack
 
-- **FastAPI** — API REST
-- **Redis** — almacenamiento key-value
+- **FastAPI** (Python) — API REST
+- **Redis** — almacenamiento key-value con persistencia
 - **Nginx** — reverse proxy
-- **Docker + Docker Compose** — contenedorización
-- **Terraform** — infraestructura como código
+- **Docker + Docker Compose** — contenedorización multi-servicio
+- **Terraform** — infraestructura como código (IaC)
 - **GitHub Actions** — CI/CD pipeline
-- **AWS ECR** — registro de imágenes
+- **AWS ECR** — registro privado de imágenes Docker
 - **AWS ECS Fargate** — despliegue serverless
 
 ## Arquitectura
+
+### Local (Docker Compose)
 ```
-Internet → Nginx :80 → FastAPI :8000 → Redis :6379
+Cliente → Nginx :80 → FastAPI :8000 → Redis :6379
 ```
 
-## Uso
-```bash
-# Acortar URL
-curl -X POST http://<host>/shorten \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://ejemplo.com"}'
-
-# Redirect
-curl -L http://<host>/<código>
+### Producción (AWS)
 ```
+Cliente → ECS Fargate :8000 → FastAPI
+              │
+              └── Imagen desde ECR (CI/CD automático)
+```
+
+## Endpoints
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/shorten` | Acorta una URL |
+| GET | `/{code}` | Redirige a la URL original |
+| GET | `/health` | Health check del servicio |
+| GET | `/docs` | Documentación Swagger |
+| GET | `/` | Frontend web |
 
 ## Desarrollo local
 ```bash
 docker compose up --build
+# Abrir http://localhost
 ```
 
-## Deploy
-
-El pipeline de GitHub Actions buildea y pushea la imagen a ECR en cada push a `main`. La infra se provisiona con Terraform:
+## Deploy a AWS
 ```bash
 cd terraform
 terraform init
 terraform apply
+
+# Destruir para no pagar
+terraform destroy
+```
+
+## CI/CD
+
+Cada push a `main` ejecuta automáticamente:
+1. Build de la imagen Docker
+2. Push a AWS ECR con tag `latest` + SHA del commit
+
+## Estructura
+```
+url-shortener/
+├── app/
+│   ├── main.py              # API FastAPI
+│   └── static/
+│       └── index.html       # Frontend
+├── nginx/
+│   └── nginx.conf           # Reverse proxy
+├── terraform/
+│   └── main.tf              # Infra AWS
+├── .github/workflows/
+│   └── deploy.yml           # CI/CD pipeline
+├── Dockerfile
+├── docker-compose.yml
+└── requirements.txt
 ```
