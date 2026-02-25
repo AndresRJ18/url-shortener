@@ -1,11 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import string, random, os
 
 app = FastAPI()
 
-# Intenta conectar a Redis, si no hay usa memoria
 try:
     import redis
     r = redis.Redis(
@@ -34,13 +33,15 @@ def health():
     return {"status": "ok", "store": store_type}
 
 @app.post("/shorten")
-def shorten_url(request: URLRequest):
+def shorten_url(request: URLRequest, req: Request):
     code = generate_code()
     if r:
         r.set(code, request.url)
     else:
         url_store[code] = request.url
-    return {"short_url": f"http://localhost/{code}"}
+    # Usa el host real de la request en vez de hardcodear
+    base_url = f"{req.url.scheme}://{req.headers.get('host', 'localhost')}"
+    return {"short_url": f"{base_url}/{code}"}
 
 @app.get("/{code}")
 def redirect_url(code: str):
